@@ -4,4 +4,4 @@ scalaVersion := "2.11.4"
 
 lazy val dcopAlgorithms = ProjectRef(file("../dcop-algorithms"), "dcop-algorithms")
 
-lazy val root = project.in(file(".")).dependsOn(dcopAlgorithms)
+lazy val dcopAlgorithmsEvaluation = Project(id = "dcop-algorithms-evaluation", base = file(".")).dependsOn(dcopAlgorithms)
