@@ -4,7 +4,7 @@ import java.math.MathContext
 import java.util.Locale
 
 import scala.collection.GenTraversableOnce
-import scala.collection.immutable.SortedSet
+import scala.collection.immutable
 import scala.collection.mutable
 import scala.io.Source
 import scala.math.BigDecimal
@@ -38,6 +38,7 @@ object Import {
    *                                  The function can return any object, which will serve as input to the functions `vertexFactory` and `edgeFactory`.
    * @param vertexFactory             a function that returns a vertex for the given configuration.
    * @param edgeFactory               a function that returns an edge for the given configuration.
+   * @return                          the vertices added to the graph.
    */
   def importEavFile[Id, Signal, AgentId <: Id, Action, IntermediateUtilityType, UtilityType, Config, VertexType <: Vertex[Id, _, Id, Signal], EdgeType <: Edge[Id]](
     source: Source,
@@ -49,7 +50,7 @@ object Import {
       finalUtilityConversion: IntermediateUtilityType => UtilityType)(
         configFactory: (AgentId, Seq[Action], Map[AgentId, Seq[Action]], Map[(AgentId, Action, Action), UtilityType]) => Config)(
           vertexFactory: Config => VertexType,
-          edgeFactory: Config => EdgeType): Unit = {
+          edgeFactory: Config => EdgeType): immutable.IndexedSeq[VertexType] = {
     val variables = mutable.Map.empty[BigInt, BigInt]
     val constraints = mutable.Map.empty[(BigInt, BigInt), mutable.Map[(BigInt, BigInt), Option[BigDecimal]]]
     var constraintOption: Option[(Boolean, mutable.Map[(BigInt, BigInt), Option[BigDecimal]])] = None
@@ -97,7 +98,7 @@ object Import {
 
     val agentIdSeq = agentIds.toSeq.distinct.take(variables.size).toIndexedSeq
     val actionIdSeq = actionIds.toSeq.distinct.take(range.toInt).toIndexedSeq
-    val transformedUtilities = SortedSet(constraints.values.toSeq.flatMap(_.values.flatten): _*).toSeq.map(x => (x, { val y = utilityTransformation(x); (y, finalUtilityConversion(y)) })).toMap
+    val transformedUtilities = immutable.SortedSet(constraints.values.toSeq.flatMap(_.values.flatten): _*).toSeq.map(x => (x, { val y = utilityTransformation(x); (y, finalUtilityConversion(y)) })).toMap
 
     val cspViolation = if (constraints.values.exists(_.values.exists(_.isEmpty)))
       Some(finalUtilityConversion(cspViolationCalculation(constraints.values.map(_.values.flatten.map(transformedUtilities(_)._1)))))
@@ -111,6 +112,8 @@ object Import {
     val utilitiesCache = mutable.Map.empty[mutable.Map[(AgentId, Action, Action), UtilityType], Map[(AgentId, Action, Action), UtilityType]]
 
     val configs = mutable.Map.empty[BigInt, Config]
+    val vertices = immutable.IndexedSeq.newBuilder[VertexType]
+    vertices.sizeHint(variables.size)
 
     for (varId <- variables.keys.toSeq.sorted) {
       val domainNeighborhood = mutable.Map.empty[AgentId, Seq[Action]]
@@ -134,7 +137,9 @@ object Import {
 
       val config = configFactory(agentIdSeq(varId.toInt), domainCache.getOrElseUpdate(variables(varId), actionIdSeq.take(variables(varId).toInt)), domainNeighborhoodCache.getOrElseUpdate(domainNeighborhood, domainNeighborhood.toMap), utilitiesCache.getOrElseUpdate(utilities, utilities.toMap))
       configs(varId) = config
-      graph.addVertex(vertexFactory(config))
+      val vertex = vertexFactory(config)
+      vertices += vertex
+      graph.addVertex(vertex)
     }
 
     for (x <- constraints.keys.toSeq.sorted) x match {
@@ -142,5 +147,7 @@ object Import {
         graph.addEdge(agentIdSeq(varId1.toInt), edgeFactory(configs(varId2)))
         graph.addEdge(agentIdSeq(varId2.toInt), edgeFactory(configs(varId1)))
     }
+
+    vertices.result
   }
 }
