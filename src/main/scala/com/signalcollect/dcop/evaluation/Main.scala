@@ -21,7 +21,7 @@ object Main {
         println("File " + (index + 1) + " of " + DataSets.files.length + ": " + path)
 
         val source = Source.fromFile(new File("datasets", path))(Codec.UTF8)
-        val graph = GraphBuilder.build
+        val graph = new GraphBuilder[Int, Int].build
 
         Import.importEavFile(source, graph, Stream.from(0), Stream.from(0), utilityTransformation(negateUtility))(cspViolationCalculation, _.toDouble)(configFactory(0))(dsaAVertexFactory(0.5), edgeFactory)
         source.close()

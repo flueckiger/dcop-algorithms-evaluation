@@ -11,8 +11,6 @@ class EavDcopVertex[AgentId, Action, UtilityType](
 
   override type Signal = Action
 
-  override def currentConfig: EavConfig[AgentId, Action, UtilityType] = {
-    val neighborhood: Map[AgentId, Action] = mostRecentSignalMap.toMap.asInstanceOf[Map[AgentId, Action]]
-    state.collect(neighborhood, 1)
-  }
+  override def currentConfig: EavConfig[AgentId, Action, UtilityType] =
+    state.collect(mostRecentSignalMap, 1)
 }
