@@ -10,7 +10,6 @@ import scala.math.BigDecimal
 import scala.math.Ordered
 
 import com.signalcollect.GraphBuilder
-import com.signalcollect.dcop.modules.Configuration
 import com.signalcollect.dcop.optimizers.DsaAVertexColoring
 import com.signalcollect.dcop.optimizers.DsanVertexColoring
 
@@ -67,16 +66,18 @@ object Main {
       numberOfCollects)
   }
 
-  def dsaAVertexFactory[AgentId, Action](
+  def dsaAVertexFactory[AgentId, Action, UtilityType](
     changeProbability: Double, debug: Boolean = false)(
-      config: EavConfig[AgentId, Action, Double]) =
+      config: EavConfig[AgentId, Action, UtilityType])(
+        implicit utilEv: Numeric[UtilityType]) =
     new EavDcopVertex(config)(new DsaAVertexColoring(changeProbability), debug)
 
-  def dsanVertexFactory[AgentId, Action](
-    changeProbability: Double, constant: Double, kval: Double, debug: Boolean = false)(
-      config: EavConfig[AgentId, Action, Double]) =
+  def dsanVertexFactory[AgentId, Action, UtilityType](
+    changeProbability: Double, constant: UtilityType, kval: UtilityType, debug: Boolean = false)(
+      config: EavConfig[AgentId, Action, UtilityType])(
+        implicit utilEv: Numeric[UtilityType]) =
     new EavDcopVertex(config)(new DsanVertexColoring(changeProbability, constant, kval), debug)
 
-  def edgeFactory[AgentId, Action](config: Configuration[AgentId, Action, _]) =
-    new EavDcopEdge(config.centralVariableAssignment._1)
+  def edgeFactory[AgentId, Action, UtilityType](config: UtilityConfig[AgentId, Action, UtilityType, _]) =
+    new EavDcopEdge[AgentId, Action, UtilityType](config.centralVariableAssignment._1)
 }

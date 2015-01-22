@@ -3,8 +3,6 @@ package com.signalcollect.dcop.evaluation
 import scala.collection.mutable
 import scala.math.Ordered
 
-import com.signalcollect.dcop.modules.Configuration
-
 class EavConfig[AgentId, Action, UtilityType](
   val agentId: AgentId,
   override val centralVariableValue: Action,
@@ -16,7 +14,7 @@ class EavConfig[AgentId, Action, UtilityType](
   override val numberOfCollects: Long,
   domainConfig: mutable.Map[Action, EavConfig[AgentId, Action, UtilityType]] = mutable.Map[Action, EavConfig[AgentId, Action, UtilityType]]())(
     implicit ev: UtilityType => Ordered[UtilityType])
-  extends Configuration[AgentId, Action, EavConfig[AgentId, Action, UtilityType]] {
+  extends UtilityConfig[AgentId, Action, UtilityType, EavConfig[AgentId, Action, UtilityType]] {
   domainConfig(centralVariableValue) = this
   val missing = domain diff domainConfig.keySet
   if (missing.nonEmpty)
