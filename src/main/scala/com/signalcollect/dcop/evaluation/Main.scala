@@ -7,11 +7,8 @@ import scala.collection.concurrent.TrieMap
 import scala.io.Codec
 import scala.io.Source
 import scala.math.BigDecimal
-import scala.math.Ordered
 
 import com.signalcollect.GraphBuilder
-import com.signalcollect.dcop.optimizers.DsaAVertexColoring
-import com.signalcollect.dcop.optimizers.DsanVertexColoring
 
 object Main {
   def main(args: Array[String]): Unit = {
@@ -22,7 +19,7 @@ object Main {
         val source = Source.fromFile(new File("datasets", path))(Codec.UTF8)
         val graph = new GraphBuilder[Int, Int].build
 
-        Import.importEavFile(source, graph, Stream.from(0), Stream.from(0), utilityTransformation(negateUtility))(cspViolationCalculation, _.toDouble)(configFactory(0))(dsaAVertexFactory(0.5), edgeFactory)
+        Import.importEavFile(source, graph, Stream.from(0), Stream.from(0), utilityTransformation(negateUtility))(cspViolationCalculation, _.toDouble)(simpleConfigFactory(0))(simpleDsaAVertexFactory(0.5), simpleEdgeFactory)
         source.close()
 
         graph.execute
@@ -40,7 +37,7 @@ object Main {
   def cspViolationCalculation(x: Iterable[Iterable[BigDecimal]]) =
     x.flatten.map(_(MathContext.UNLIMITED).setScale(0, BigDecimal.RoundingMode.UP)).filter(_ < 0).sum - 1
 
-  def configFactory[AgentId, Action, UtilityType, DefaultUtility](
+  def simpleConfigFactory[AgentId, Action, UtilityType, DefaultUtility](
     defaultUtility: DefaultUtility,
     numberOfCollects: Long = 0L,
     // This cache variables are used to provide reference equality for equal objects,
@@ -52,10 +49,9 @@ object Main {
       domain: Seq[Action],
       domainNeighborhood: Map[AgentId, Seq[Action]],
       utilities: Map[(AgentId, Action, Action), UtilityType])(
-        implicit convertDefaultUtility: DefaultUtility => UtilityType,
-        ev: UtilityType => Ordered[UtilityType]) = {
+        implicit convertDefaultUtility: DefaultUtility => UtilityType) = {
     val neighborhood = neighborhoodCache.getOrElseUpdate(domainNeighborhood, (domainNeighborhood.mapValues(_(0)).view.force, domainNeighborhood.mapValues(x => domainCache.getOrElseUpdate(x, x.toSet)).view.force))
-    new EavConfig(
+    new EavSimpleConfig(
       agentId,
       domain(0),
       domainCache.getOrElseUpdate(domain, domain.toSet),
@@ -66,18 +62,12 @@ object Main {
       numberOfCollects)
   }
 
-  def dsaAVertexFactory[AgentId, Action, UtilityType](
+  def simpleDsaAVertexFactory[AgentId, Action, UtilityType](
     changeProbability: Double, debug: Boolean = false)(
-      config: EavConfig[AgentId, Action, UtilityType])(
+      config: EavSimpleConfig[AgentId, Action, UtilityType])(
         implicit utilEv: Numeric[UtilityType]) =
-    new EavDcopVertex(config)(new DsaAVertexColoring(changeProbability), debug)
+    new EavSimpleDcopVertex(config)(new EavSimpleDsaAOptimizer(changeProbability), debug)
 
-  def dsanVertexFactory[AgentId, Action, UtilityType](
-    changeProbability: Double, constant: UtilityType, kval: UtilityType, debug: Boolean = false)(
-      config: EavConfig[AgentId, Action, UtilityType])(
-        implicit utilEv: Numeric[UtilityType]) =
-    new EavDcopVertex(config)(new DsanVertexColoring(changeProbability, constant, kval), debug)
-
-  def edgeFactory[AgentId, Action, UtilityType](config: UtilityConfig[AgentId, Action, UtilityType, _]) =
-    new EavDcopEdge[AgentId, Action, UtilityType](config.centralVariableAssignment._1)
+  def simpleEdgeFactory[AgentId, Action, UtilityType](config: UtilityConfig[AgentId, Action, UtilityType, _]) =
+    new EavSimpleDcopEdge[AgentId, Action, UtilityType](config.centralVariableAssignment._1)
 }
