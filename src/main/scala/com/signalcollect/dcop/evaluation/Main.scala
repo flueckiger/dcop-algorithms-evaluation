@@ -4,6 +4,8 @@ import java.io.File
 import java.math.MathContext
 
 import scala.collection.concurrent.TrieMap
+import scala.collection.immutable
+import scala.collection.mutable
 import scala.io.Codec
 import scala.io.Source
 import scala.math.BigDecimal
@@ -17,9 +19,9 @@ object Main {
         println("File " + (index + 1) + " of " + DataSets.files.length + ": " + path)
 
         val source = Source.fromFile(new File("datasets", path))(Codec.UTF8)
-        val graph = new GraphBuilder[Int, Int].build
+        val graph = new GraphBuilder[String, Int].build
 
-        Import.importEavFile(source, graph, Stream.from(0), Stream.from(0), utilityTransformation(negateUtility))(cspViolationCalculation, _.toDouble)(simpleConfigFactory(0))(simpleDsaAVertexFactory(0.5), simpleEdgeFactory)
+        Import.importEavFile(source, graph, alphaStream(0), Stream.from(0), utilityTransformation(negateUtility))(cspViolationCalculation, _.toDouble)(simpleConfigFactory(0))(simpleDsaAVertexFactory(0.5), simpleEdgeFactory)
         source.close()
 
         graph.execute
@@ -43,18 +45,18 @@ object Main {
     // This cache variables are used to provide reference equality for equal objects,
     // optimizing object comparisons.
     domainCache: TrieMap[Seq[Action], Set[Action]] = TrieMap.empty[Seq[Action], Set[Action]],
-    neighborhoodCache: TrieMap[Map[AgentId, Seq[Action]], (Map[AgentId, Action], Map[AgentId, Set[Action]])] = TrieMap.empty[Map[AgentId, Seq[Action]], (Map[AgentId, Action], Map[AgentId, Set[Action]])],
+    neighborhoodCache: TrieMap[collection.Map[AgentId, Seq[Action]], (Map[AgentId, Action], collection.Map[AgentId, Set[Action]])] = TrieMap.empty[collection.Map[AgentId, Seq[Action]], (Map[AgentId, Action], collection.Map[AgentId, Set[Action]])],
     defaultUtilityCache: TrieMap[DefaultUtility, UtilityType] = TrieMap.empty[DefaultUtility, UtilityType])(
       agentId: AgentId,
       domain: Seq[Action],
-      domainNeighborhood: Map[AgentId, Seq[Action]],
-      utilities: Map[(AgentId, Action, Action), UtilityType])(
+      domainNeighborhood: collection.Map[AgentId, Seq[Action]],
+      utilities: collection.Map[(AgentId, Action, Action), UtilityType])(
         implicit convertDefaultUtility: DefaultUtility => UtilityType) = {
-    val neighborhood = neighborhoodCache.getOrElseUpdate(domainNeighborhood, (domainNeighborhood.mapValues(_(0)).view.force, domainNeighborhood.mapValues(x => domainCache.getOrElseUpdate(x, x.toSet)).view.force))
+    val neighborhood = neighborhoodCache.getOrElseUpdate(domainNeighborhood, (domainNeighborhood.mapValues(_(0)).view.toMap, mutable.LinkedHashMap(domainNeighborhood.mapValues(x => domainCache.getOrElseUpdate(x, immutable.ListSet(x.reverse: _*))).toSeq: _*)))
     new EavSimpleConfig(
       agentId,
       domain(0),
-      domainCache.getOrElseUpdate(domain, domain.toSet),
+      domainCache.getOrElseUpdate(domain, immutable.ListSet(domain.reverse: _*)),
       neighborhood._1,
       neighborhood._2,
       utilities,
@@ -70,4 +72,22 @@ object Main {
 
   def simpleEdgeFactory[AgentId, Action, UtilityType](config: UtilityConfig[AgentId, Action, UtilityType, _]) =
     new EavSimpleDcopEdge[AgentId, Action, UtilityType](config.centralVariableAssignment._1)
+
+  def alphaStream[A](start: A)(implicit i: Integral[A]): Stream[String] =
+    intToAlpha(start) #:: alphaStream(i.plus(start, i.one))
+
+  def intToAlpha[A](x: A)(implicit i: Integral[A]): String = {
+    var a = x
+    val builder = new StringBuilder()
+    val i1 = i.one
+    val i26 = i.fromInt(26)
+    val i65 = i.fromInt(65)
+
+    while (i.signum(a) >= 0) {
+      builder += i.toInt(i.plus(i.rem(a, i26), i65)).toChar;
+      a = i.minus(i.quot(a, i26), i1)
+    }
+
+    builder.reverseContents().toString;
+  }
 }

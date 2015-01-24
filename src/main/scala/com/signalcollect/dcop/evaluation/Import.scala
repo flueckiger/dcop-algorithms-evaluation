@@ -48,7 +48,7 @@ object Import {
     utilityTransformation: BigDecimal => IntermediateUtilityType)(
       cspViolationCalculation: Iterable[Iterable[IntermediateUtilityType]] => IntermediateUtilityType,
       finalUtilityConversion: IntermediateUtilityType => UtilityType)(
-        configFactory: (AgentId, Seq[Action], Map[AgentId, Seq[Action]], Map[(AgentId, Action, Action), UtilityType]) => Config)(
+        configFactory: (AgentId, Seq[Action], collection.Map[AgentId, Seq[Action]], collection.Map[(AgentId, Action, Action), UtilityType]) => Config)(
           vertexFactory: Config => VertexType,
           edgeFactory: Config => EdgeType): immutable.IndexedSeq[VertexType] = {
     val variables = mutable.Map.empty[BigInt, BigInt]
@@ -108,34 +108,33 @@ object Import {
     // This cache variables are used to provide reference equality for equal objects,
     // optimizing object comparisons.
     val domainCache = mutable.Map.empty[BigInt, Seq[Action]]
-    val domainNeighborhoodCache = mutable.Map.empty[mutable.Map[AgentId, Seq[Action]], Map[AgentId, Seq[Action]]]
-    val utilitiesCache = mutable.Map.empty[mutable.Map[(AgentId, Action, Action), UtilityType], Map[(AgentId, Action, Action), UtilityType]]
+    val domainNeighborhoodCache = mutable.Map.empty[mutable.Map[AgentId, Seq[Action]], collection.Map[AgentId, Seq[Action]]]
+    val utilitiesKeyCache = mutable.Map.empty[(AgentId, BigInt, BigInt), (AgentId, Action, Action)]
+    val utilitiesCache = mutable.Map.empty[mutable.Map[(AgentId, Action, Action), UtilityType], collection.Map[(AgentId, Action, Action), UtilityType]]
 
     val configs = mutable.Map.empty[BigInt, Config]
     val vertices = immutable.IndexedSeq.newBuilder[VertexType]
     vertices.sizeHint(variables.size)
 
     for (varId <- variables.keys.toSeq.sorted) {
-      val domainNeighborhood = mutable.Map.empty[AgentId, Seq[Action]]
-      val utilities = mutable.Map.empty[(AgentId, Action, Action), UtilityType]
+      val domainNeighborhood = mutable.LinkedHashMap.empty[AgentId, Seq[Action]]
+      val utilities = mutable.LinkedHashMap.empty[(AgentId, Action, Action), UtilityType]
 
-      for (neighbor <- neighbors.getOrElse(varId, Set.empty[BigInt])) {
+      for (neighbor <- neighbors.getOrElse(varId, Set.empty[BigInt]).toSeq.sorted) {
         val neighborId = agentIdSeq(neighbor.toInt)
-        domainNeighborhood(neighborId) = actionIdSeq.take(variables(neighbor).toInt)
+        domainNeighborhood(neighborId) = domainCache.getOrElseUpdate(variables(neighbor), actionIdSeq.take(variables(neighbor).toInt))
         val ascending = varId < neighbor
 
-        for (x <- constraints(if (ascending) (varId, neighbor) else (neighbor, varId))) x match {
+        for (x <- constraints(if (ascending) (varId, neighbor) else (neighbor, varId)).toSeq.view.map(x => if (ascending) x else (x._1.swap, x._2)).sorted) x match {
           case ((val1, val2), utility) =>
-            val action1 = actionIdSeq((if (ascending) val1 else val2).toInt)
-            val action2 = actionIdSeq((if (ascending) val2 else val1).toInt)
-            utilities((neighborId, action1, action2)) = utility match {
+            utilities(utilitiesKeyCache.getOrElseUpdate((neighborId, val1, val2), (neighborId, actionIdSeq(val1.toInt), actionIdSeq(val2.toInt)))) = utility match {
               case Some(x) => transformedUtilities(x)._2
               case None => cspViolation.get
             }
         }
       }
 
-      val config = configFactory(agentIdSeq(varId.toInt), domainCache.getOrElseUpdate(variables(varId), actionIdSeq.take(variables(varId).toInt)), domainNeighborhoodCache.getOrElseUpdate(domainNeighborhood, domainNeighborhood.toMap), utilitiesCache.getOrElseUpdate(utilities, utilities.toMap))
+      val config = configFactory(agentIdSeq(varId.toInt), domainCache.getOrElseUpdate(variables(varId), actionIdSeq.take(variables(varId).toInt)), domainNeighborhoodCache.getOrElseUpdate(domainNeighborhood, domainNeighborhood), utilitiesCache.getOrElseUpdate(utilities, utilities))
       configs(varId) = config
       val vertex = vertexFactory(config)
       vertices += vertex

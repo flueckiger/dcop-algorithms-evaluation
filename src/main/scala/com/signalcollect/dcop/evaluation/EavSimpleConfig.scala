@@ -7,8 +7,8 @@ class EavSimpleConfig[AgentId, Action, UtilityType](
   override val centralVariableValue: Action,
   override val domain: Set[Action],
   override val neighborhood: Map[AgentId, Action],
-  override val domainNeighborhood: Map[AgentId, Set[Action]],
-  override val utilities: Map[(AgentId, Action, Action), UtilityType],
+  override val domainNeighborhood: collection.Map[AgentId, Set[Action]],
+  override val utilities: collection.Map[(AgentId, Action, Action), UtilityType],
   override val defaultUtility: UtilityType,
   override val numberOfCollects: Long,
   domainConfig: mutable.Map[Action, EavSimpleConfig[AgentId, Action, UtilityType]] = mutable.Map[Action, EavSimpleConfig[AgentId, Action, UtilityType]]())
@@ -67,7 +67,7 @@ class EavSimpleConfig[AgentId, Action, UtilityType](
       "  agentId = " + agentId.toString + '\n' +
       "  centralVariableValue = " + centralVariableValue.toString + '\n' +
       "  domain = " + domain.toString + '\n' +
-      "  neighborhood = " + neighborhood.toString + '\n' +
+      "  neighborhood = " + orderedNeighborhood.toString + '\n' +
       "  domainNeighborhood = " + domainNeighborhood.toString + '\n' +
       "  utilities = " + utilities.toString + '\n' +
       "  defaultUtility = " + defaultUtility.toString + '\n' +
