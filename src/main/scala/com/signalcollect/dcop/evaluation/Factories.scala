@@ -1,0 +1,96 @@
+package com.signalcollect.dcop.evaluation
+
+import scala.collection.concurrent.TrieMap
+import scala.collection.immutable
+import scala.collection.mutable
+
+import com.signalcollect.dcop.modules.Configuration
+
+object Factories {
+  def simpleConfig[AgentId, Action, UtilityType, DefaultUtility](
+    defaultUtility: DefaultUtility,
+    neighborhoodCache: NeighborhoodCache[AgentId, Action] = new NeighborhoodCache[AgentId, Action],
+    defaultUtilityCache: FunctionCache[UtilityType] = new FunctionCache[UtilityType])(
+      agentId: AgentId,
+      domain: Seq[Action],
+      domainNeighborhood: collection.Map[AgentId, Seq[Action]],
+      utilities: collection.Map[(AgentId, Action, Action), UtilityType])(implicit ev: DefaultUtility => UtilityType) = {
+    val (a, b, c) = neighborhoodCache(domain, domainNeighborhood)
+    new EavSimpleConfig(agentId, domain(0), a, b, c, utilities, defaultUtilityCache(defaultUtility))
+  }
+
+  def adoptConfig[AgentId, Action, UtilityType, DefaultUtility](
+    defaultUtility: DefaultUtility,
+    neighborhoodCache: NeighborhoodCache[AgentId, Action] = new NeighborhoodCache[AgentId, Action],
+    defaultUtilityCache: FunctionCache[UtilityType] = new FunctionCache[UtilityType])(
+      agentId: AgentId,
+      domain: Seq[Action],
+      domainNeighborhood: collection.Map[AgentId, Seq[Action]],
+      utilities: collection.Map[(AgentId, Action, Action), UtilityType])(implicit ev: DefaultUtility => UtilityType, utilEv: Numeric[UtilityType]) = {
+    val (a, _, c) = neighborhoodCache(domain, domainNeighborhood)
+    new EavAdoptConfig(agentId, domain(0), a, Map.empty, c, utilities, defaultUtilityCache(defaultUtility))
+  }
+
+  def simpleDsaAVertex[AgentId, Action, UtilityType](
+    changeProbability: Double,
+    debug: Boolean = false)(
+      config: EavSimpleConfig[AgentId, Action, UtilityType])(implicit utilEv: Numeric[UtilityType]) =
+    new EavSimpleDcopVertex(config)(new EavSimpleDsaAOptimizer(changeProbability), debug)
+
+  def adoptVertex[AgentId, Action, UtilityType](
+    debug: Boolean = false)(
+      config: AdoptConfig[AgentId, Action, UtilityType, Config] forSome { type Config <: AdoptConfig[AgentId, Action, UtilityType, Config] })(implicit utilEv: Numeric[UtilityType]) =
+    new AdoptDcopVertex(config)(new AdoptOptimizer, debug)
+
+  def simpleEdge[AgentId, Action, UtilityType](config: UtilityConfig[AgentId, Action, UtilityType, _]) =
+    new EavSimpleDcopEdge[AgentId, Action, UtilityType](config.centralVariableAssignment._1)
+
+  def adoptEdge[AgentId](config: Configuration[AgentId, _, _]) =
+    new AdoptDcopEdge(config.centralVariableAssignment._1)
+
+  /**
+   * Used to provide reference equality for equal objects, optimizing object comparisons.
+   */
+  protected class NeighborhoodCache[AgentId, Action] {
+    private[this] val domainCache = TrieMap.empty[Seq[Action], Set[Action]]
+    private[this] val neighborhoodCache = TrieMap.empty[collection.Map[AgentId, Seq[Action]], (Map[AgentId, Action], collection.Map[AgentId, Set[Action]])]
+
+    def apply(
+      domain: Seq[Action],
+      domainNeighborhood: collection.Map[AgentId, Seq[Action]]) = {
+      val (x, y) =
+        getOrElseUpdate(neighborhoodCache, domainNeighborhood, (
+          domainNeighborhood.mapValues(_(0)).view.toMap,
+          mutable.LinkedHashMap(domainNeighborhood.mapValues(x =>
+            getOrElseUpdate(domainCache, x, immutable.ListSet(x.reverse: _*))).toSeq: _*)))
+      (getOrElseUpdate(domainCache, domain, immutable.ListSet(domain.reverse: _*)), x, y)
+    }
+  }
+
+  protected class FunctionCache[A] {
+    private[this] val cache = TrieMap.empty[Any, A]
+    def apply[B](x: B)(implicit f: B => A): A = getOrElseUpdate(cache, x, f(x))
+  }
+
+  /**
+   * If given key is already in given map, returns associated value.
+   *
+   * Otherwise, computes value from given expression `op`, stores with key
+   * in map and returns that value.
+   *
+   * This is an atomic operation.
+   * @param  map the map to use
+   * @param  key the key to test
+   * @param  op  the computation yielding the value to associate with `key`. It
+   *             may be executed even if `key` is already in map.
+   * @return     the value associated with key (either previously or as a result
+   *             of executing the method).
+   */
+  private def getOrElseUpdate[A, B](map: collection.concurrent.Map[A, B], key: A, op: => B): B =
+    map.get(key) match {
+      case Some(v) => v
+      case None =>
+        val v = op
+        map.putIfAbsent(key, v).getOrElse(v)
+    }
+}
