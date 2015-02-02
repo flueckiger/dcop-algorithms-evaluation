@@ -96,7 +96,7 @@ object Import {
             throw new IndexOutOfBoundsException()
     }
 
-    val agentIdSeq = agentIds.toSeq.distinct.take(variables.size).toIndexedSeq
+    val agentIdMap = (variables.keys.toSeq.sorted zip agentIds.toSeq.distinct).toMap
     val actionIdSeq = actionIds.toSeq.distinct.take(range.toInt).toIndexedSeq
     val transformedUtilities = immutable.SortedSet(constraints.values.toSeq.flatMap(_.values.flatten): _*).toSeq.map(x => (x, { val y = utilityTransformation(x); (y, finalUtilityConversion(y)) })).toMap
 
@@ -121,7 +121,7 @@ object Import {
       val utilities = mutable.LinkedHashMap.empty[(AgentId, Action, Action), UtilityType]
 
       for (neighbor <- neighbors.getOrElse(varId, Set.empty[BigInt]).toSeq.sorted) {
-        val neighborId = agentIdSeq(neighbor.toInt)
+        val neighborId = agentIdMap(neighbor)
         domainNeighborhood(neighborId) = domainCache.getOrElseUpdate(variables(neighbor), actionIdSeq.take(variables(neighbor).toInt))
         val ascending = varId < neighbor
 
@@ -134,7 +134,7 @@ object Import {
         }
       }
 
-      val config = configFactory(agentIdSeq(varId.toInt), domainCache.getOrElseUpdate(variables(varId), actionIdSeq.take(variables(varId).toInt)), domainNeighborhoodCache.getOrElseUpdate(domainNeighborhood, domainNeighborhood), utilitiesCache.getOrElseUpdate(utilities, utilities))
+      val config = configFactory(agentIdMap(varId), domainCache.getOrElseUpdate(variables(varId), actionIdSeq.take(variables(varId).toInt)), domainNeighborhoodCache.getOrElseUpdate(domainNeighborhood, domainNeighborhood), utilitiesCache.getOrElseUpdate(utilities, utilities))
       configs(varId) = config
       val vertex = vertexFactory(config)
       vertices += vertex
@@ -143,8 +143,8 @@ object Import {
 
     for (x <- constraints.keys.toSeq.sorted) x match {
       case (varId1, varId2) =>
-        graph.addEdge(agentIdSeq(varId1.toInt), edgeFactory(configs(varId2)))
-        graph.addEdge(agentIdSeq(varId2.toInt), edgeFactory(configs(varId1)))
+        graph.addEdge(agentIdMap(varId1), edgeFactory(configs(varId2)))
+        graph.addEdge(agentIdMap(varId2), edgeFactory(configs(varId1)))
     }
 
     vertices.result
