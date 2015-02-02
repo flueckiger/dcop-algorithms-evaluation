@@ -2,7 +2,7 @@ package com.signalcollect.dcop.evaluation
 
 import scala.collection.mutable
 
-trait EavConfig[AgentId, Action, UtilityType, +Config <: EavConfig[AgentId, Action, UtilityType, Config]] extends UtilityConfig[AgentId, Action, UtilityType, Config] {
+trait EavConfig[AgentId, Action, +UtilityType, +Config <: EavConfig[AgentId, Action, UtilityType, Config]] extends UtilityConfig[AgentId, Action, UtilityType, Config] {
   def agentId: AgentId
   def domainNeighborhood: collection.Map[AgentId, Set[Action]]
   def utilities: collection.Map[(AgentId, Action, Action), UtilityType]
@@ -11,9 +11,9 @@ trait EavConfig[AgentId, Action, UtilityType, +Config <: EavConfig[AgentId, Acti
   override val centralVariableAssignment: (AgentId, Action) = (agentId, centralVariableValue)
 
   // This method is already implemented in a superclass, but subclasses have to override it.
-  override def centralVariableValue: Action = throw new UnsupportedOperationException
+  override def centralVariableValue: Action = ???
 
-  override def computeExpectedNumberOfConflicts: Int = throw new UnsupportedOperationException
+  override def computeExpectedNumberOfConflicts: Int = ???
 
   protected def orderedNeighborhood: collection.Map[AgentId, Action] = {
     val builder = mutable.LinkedHashMap.newBuilder[AgentId, Action]

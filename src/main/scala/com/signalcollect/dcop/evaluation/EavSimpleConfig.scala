@@ -10,9 +10,9 @@ class EavSimpleConfig[AgentId, Action, UtilityType](
   override val domainNeighborhood: collection.Map[AgentId, Set[Action]],
   override val utilities: collection.Map[(AgentId, Action, Action), UtilityType],
   override val defaultUtility: UtilityType,
-  override val numberOfCollects: Long,
+  override val numberOfCollects: Long = 0L,
   domainConfig: mutable.Map[Action, EavSimpleConfig[AgentId, Action, UtilityType]] = mutable.Map[Action, EavSimpleConfig[AgentId, Action, UtilityType]]())
-  extends EavConfig[AgentId, Action, UtilityType, EavSimpleConfig[AgentId, Action, UtilityType]] {
+  extends EavConfig[AgentId, Action, UtilityType, EavSimpleConfig[AgentId, Action, UtilityType]] with Equals {
   domainConfig(centralVariableValue) = this
   val missing = domain diff domainConfig.keySet
   if (missing.nonEmpty)
@@ -55,8 +55,8 @@ class EavSimpleConfig[AgentId, Action, UtilityType](
     case _ => false
   }
 
-  def canEqual(other: Any): Boolean =
-    other.isInstanceOf[EavSimpleConfig[AgentId, Action, UtilityType]]
+  override def canEqual(that: Any): Boolean =
+    that.isInstanceOf[EavSimpleConfig[AgentId, Action, UtilityType]]
 
   override val hashCode: Int =
     41 * (41 * (41 * (41 * (41 * (41 * (41 * (41 +
