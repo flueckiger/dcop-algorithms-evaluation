@@ -10,19 +10,25 @@ import scala.math.BigDecimal
 import com.signalcollect.GraphBuilder
 
 object Main {
+  type UtilityType = Double
+
   def main(args: Array[String]): Unit = {
-    for (x <- DataSets.files.zipWithIndex) x match {
-      case ((path, negateUtility), index) =>
-        println("File " + (index + 1) + " of " + DataSets.files.length + ": " + path)
+    val graph = new GraphBuilder[String, Int].build
 
-        val source = Source.fromFile(new File("datasets", path))(Codec.UTF8)
-        val graph = new GraphBuilder[String, Int].build
+    try {
+      for (x <- DataSets.files.zipWithIndex) x match {
+        case ((path, negateUtility), index) =>
+          println("File " + (index + 1) + " of " + DataSets.files.length + ": " + path)
 
-        Import.importEavFile(source, graph, alphaStream(0), Stream.from(0), utilityTransformation(negateUtility))(cspViolationCalculation, _.toDouble)(Factories.adoptConfig(0))(Factories.adoptVertex(), Factories.adoptEdge)
-        source.close()
+          val source = Source.fromFile(new File("datasets", path))(Codec.UTF8)
+          Import.importEavFile(source, graph, alphaStream(0), Stream.from(0), utilityTransformation(negateUtility))(cspViolationCalculation, x => x: UtilityType)(Factories.adoptConfig(0))(Factories.adoptVertex(), Factories.adoptEdge)
+          source.close()
 
-        AdoptPreprocessing(graph, 0.0).execute
-        graph.shutdown
+          AdoptPreprocessing(graph, implicitly[Numeric[UtilityType]].zero).execute
+          graph.reset
+      }
+    } finally {
+      graph.shutdown
     }
   }
 
@@ -53,4 +59,9 @@ object Main {
 
     builder.reverseContents().toString;
   }
+
+  implicit def bigDecimal2int(x: BigDecimal): Int = x.toIntExact
+  implicit def bigDecimal2long(x: BigDecimal): Long = x.toLongExact
+  implicit def bigDecimal2bigInt(x: BigDecimal): BigInt = x.toBigIntExact.get
+  implicit def bigDecimal2double(x: BigDecimal): Double = x.toDouble
 }
