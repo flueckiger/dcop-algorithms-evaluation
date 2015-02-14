@@ -3,6 +3,7 @@ package com.signalcollect.dcop.evaluation
 import scala.collection.concurrent.TrieMap
 import scala.collection.immutable
 import scala.collection.mutable
+import scala.util.Random
 
 import com.signalcollect.dcop.modules.Configuration
 
@@ -17,6 +18,18 @@ object Factories {
       utilities: collection.Map[(AgentId, Action, Action), UtilityType])(implicit ev: DefaultUtility => UtilityType) = {
     val (a, b, c) = neighborhoodCache(domain, domainNeighborhood)
     new EavSimpleConfig(agentId, domain(0), a, b, c, utilities, defaultUtilityCache(defaultUtility))
+  }
+
+  def simpleConfigRandom[AgentId, Action, UtilityType, DefaultUtility](
+    defaultUtility: DefaultUtility,
+    neighborhoodCache: RandomNeighborhoodCache[AgentId, Action] = new RandomNeighborhoodCache[AgentId, Action],
+    defaultUtilityCache: FunctionCache[UtilityType] = new FunctionCache[UtilityType])(
+      agentId: AgentId,
+      domain: Seq[Action],
+      domainNeighborhood: collection.Map[AgentId, Seq[Action]],
+      utilities: collection.Map[(AgentId, Action, Action), UtilityType])(implicit ev: DefaultUtility => UtilityType) = {
+    val (a, b, c, d) = neighborhoodCache(agentId, domain, domainNeighborhood)
+    new EavSimpleConfig(agentId, a, b, c, d, utilities, defaultUtilityCache(defaultUtility))
   }
 
   def adoptConfig[AgentId, Action, UtilityType, DefaultUtility](
@@ -55,6 +68,9 @@ object Factories {
     private[this] val domainCache = TrieMap.empty[Seq[Action], Set[Action]]
     private[this] val neighborhoodCache = TrieMap.empty[collection.Map[AgentId, Seq[Action]], (Map[AgentId, Action], collection.Map[AgentId, Set[Action]])]
 
+    /**
+     * The first value of the given domain is assigned as initial action.
+     */
     def apply(
       domain: Seq[Action],
       domainNeighborhood: collection.Map[AgentId, Seq[Action]]) = {
@@ -64,6 +80,29 @@ object Factories {
           mutable.LinkedHashMap(domainNeighborhood.mapValues(x =>
             getOrElseUpdate(domainCache, x, immutable.ListSet(x.reverse: _*))).toSeq: _*)))
       (getOrElseUpdate(domainCache, domain, immutable.ListSet(domain.reverse: _*)), x, y)
+    }
+  }
+
+  protected class RandomNeighborhoodCache[AgentId, Action](random: Random = Random) {
+    private[this] val actionCache = TrieMap.empty[AgentId, Action]
+    private[this] val domainCache = TrieMap.empty[Seq[Action], Set[Action]]
+    private[this] val neighborhoodCache = TrieMap.empty[collection.Map[AgentId, Seq[Action]], (Map[AgentId, Action], collection.Map[AgentId, Set[Action]])]
+
+    /**
+     * A random value of the given domain is assigned as initial action.
+     */
+    def apply(
+      agentId: AgentId,
+      domain: Seq[Action],
+      domainNeighborhood: collection.Map[AgentId, Seq[Action]]) = {
+      val (x, y) =
+        getOrElseUpdate(neighborhoodCache, domainNeighborhood, (
+          domainNeighborhood.map(x => (x._1,
+            getOrElseUpdate(actionCache, x._1, x._2(random.nextInt(x._2.length))))).toMap,
+          mutable.LinkedHashMap(domainNeighborhood.mapValues(x =>
+            getOrElseUpdate(domainCache, x, immutable.ListSet(x.reverse: _*))).toSeq: _*)))
+      (getOrElseUpdate(actionCache, agentId, domain(random.nextInt(domain.length))),
+        getOrElseUpdate(domainCache, domain, immutable.ListSet(domain.reverse: _*)), x, y)
     }
   }
 
