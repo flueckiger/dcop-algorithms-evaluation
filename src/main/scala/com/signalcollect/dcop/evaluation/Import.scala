@@ -24,8 +24,10 @@ object Import {
 
   /**
    * Imports a .EAV (events as variables) file as used at [[http://teamcore.usc.edu/dcop/]].
-   * The document `/datasets/ADOPT-AAMAS04-data/readme.rtf` within this repository explains the format of .EAV files.
-   * There are also files with Constraint Satisfaction Problems (CSP) at `/datasets/problems`, which have a slightly different syntax.
+   * The document `/src/main/resources/com/signalcollect/dcop/evaluation/datasets/ADOPT-AAMAS04-data/readme.rtf`
+   * within this repository explains the format of .EAV files.
+   * There are also files with Constraint Satisfaction Problems (CSP) at
+   * `/src/main/resources/com/signalcollect/dcop/evaluation/datasets/problems`, which have a slightly different syntax.
    *
    * @param source                    the .EAV file.
    * @param graph                     the destination of the import.

@@ -13,3 +13,7 @@ libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "2.2.3" % "test",
   "org.scalacheck" %% "scalacheck" % "1.12.1" % "test"
 )
+
+EclipseKeys.createSrc := EclipseCreateSrc.Default + EclipseCreateSrc.Resource
+
+EclipseKeys.classpathTransformerFactories := Seq(ResourcesTransformer)

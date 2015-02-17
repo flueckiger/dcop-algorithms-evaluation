@@ -1,6 +1,5 @@
 package com.signalcollect.dcop.evaluation
 
-import java.io.File
 import java.math.MathContext
 
 import scala.io.Codec
@@ -20,7 +19,7 @@ object Main {
         case ((path, negateUtility), index) =>
           println("File " + (index + 1) + " of " + DataSets.files.length + ": " + path)
 
-          val source = Source.fromFile(new File("datasets", path))(Codec.UTF8)
+          val source = Source.fromInputStream(getClass.getResourceAsStream("datasets/" + path))(Codec.UTF8)
           Import.importEavFile(source, graph, alphaStream(0), Stream.from(0), utilityTransformation(negateUtility))(cspViolationCalculation, x => x: UtilityType)(Factories.adoptConfig(0))(Factories.adoptVertex(), Factories.adoptEdge)
           source.close()
 
