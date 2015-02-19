@@ -2,11 +2,13 @@ package com.signalcollect.dcop.evaluation
 
 import java.math.MathContext
 
+import scala.collection.JavaConversions.asScalaBuffer
 import scala.io.Codec
 import scala.io.Source
 import scala.math.BigDecimal
 
 import com.signalcollect.GraphBuilder
+import com.typesafe.config.ConfigFactory
 
 object Main {
   type UtilityType = Double
@@ -15,9 +17,10 @@ object Main {
     val graph = new GraphBuilder[String, Int].build
 
     try {
-      for (x <- DataSets.files.zipWithIndex) x match {
-        case ((path, negateUtility), index) =>
-          println("File " + (index + 1) + " of " + DataSets.files.length + ": " + path)
+      val problems = ConfigFactory.parseResources(getClass, "datasets.conf").getConfigList("problems").toIndexedSeq
+      for (x <- problems.zipWithIndex) (x._1.getString("path"), x._1.getBoolean("negate"), x._2) match {
+        case (path, negateUtility, index) =>
+          println("Problem " + (index + 1) + " of " + problems.length + ": " + path)
 
           val source = Source.fromInputStream(getClass.getResourceAsStream("datasets/" + path))(Codec.UTF8)
           Import.importEavFile(source, graph, alphaStream(0), Stream.from(0), utilityTransformation(negateUtility))(cspViolationCalculation, x => x: UtilityType)(Factories.adoptConfig(0))(Factories.adoptVertex(), Factories.adoptEdge)
