@@ -2,6 +2,8 @@ package com.signalcollect.dcop.evaluation
 
 import scala.collection.mutable
 
+import com.signalcollect.dcop.modules.UtilityConfig
+
 trait EavConfig[AgentId, Action, +UtilityType, +Config <: EavConfig[AgentId, Action, UtilityType, Config]] extends UtilityConfig[AgentId, Action, UtilityType, Config] {
   def agentId: AgentId
   def domainNeighborhood: collection.Map[AgentId, Set[Action]]

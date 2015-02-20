@@ -2,6 +2,8 @@ package com.signalcollect.dcop.evaluation
 
 import scala.collection.mutable
 
+import com.signalcollect.dcop.modules.SimpleConfig
+
 class EavSimpleConfig[AgentId, Action, UtilityType](
   override val agentId: AgentId,
   override val centralVariableValue: Action,
@@ -12,7 +14,9 @@ class EavSimpleConfig[AgentId, Action, UtilityType](
   override val defaultUtility: UtilityType,
   override val numberOfCollects: Long = 0L,
   domainConfig: mutable.Map[Action, EavSimpleConfig[AgentId, Action, UtilityType]] = mutable.Map[Action, EavSimpleConfig[AgentId, Action, UtilityType]]())
-  extends EavConfig[AgentId, Action, UtilityType, EavSimpleConfig[AgentId, Action, UtilityType]] with Equals {
+  extends SimpleConfig[AgentId, Action, UtilityType, EavSimpleConfig[AgentId, Action, UtilityType]]
+  with EavConfig[AgentId, Action, UtilityType, EavSimpleConfig[AgentId, Action, UtilityType]]
+  with Equals {
   domainConfig(centralVariableValue) = this
   val missing = domain diff domainConfig.keySet
   if (missing.nonEmpty)
@@ -29,7 +33,7 @@ class EavSimpleConfig[AgentId, Action, UtilityType](
 
   override def withCentralVariableAssignment(value: Action) = domainConfig(value)
 
-  def collect(neighborhood: Map[AgentId, Action], collectIncrement: Int) =
+  override def collect(neighborhood: Map[AgentId, Action]) =
     new EavSimpleConfig(
       agentId,
       centralVariableValue,
@@ -38,7 +42,7 @@ class EavSimpleConfig[AgentId, Action, UtilityType](
       domainNeighborhood,
       utilities,
       defaultUtility,
-      numberOfCollects + collectIncrement)
+      numberOfCollects + 1)
 
   override def equals(that: Any): Boolean = that match {
     case that: EavSimpleConfig[AgentId, Action, UtilityType] =>

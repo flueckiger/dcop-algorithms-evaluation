@@ -12,11 +12,11 @@ import com.signalcollect.dcop.modules.Optimizer
  * Proceedings of the second international joint conference on autonomous agents and multiagent systems,
  * ACM Press, pp. 161-168.
  */
-class AdoptDcopVertex[AgentId, Action, UtilityType](
-  initialState: AdoptConfig[AgentId, Action, UtilityType, Config] forSome { type Config <: AdoptConfig[AgentId, Action, UtilityType, Config] })(
-    override val optimizer: Optimizer[AgentId, Action, AdoptConfig[AgentId, Action, UtilityType, Config] forSome { type Config <: AdoptConfig[AgentId, Action, UtilityType, Config] }, UtilityType],
+class AdoptDcopVertex[AgentId, Action, Config <: AdoptConfig[AgentId, Action, UtilityType, Config], UtilityType](
+  initialState: Config with AdoptConfig[AgentId, Action, UtilityType, Config])(
+    override val optimizer: Optimizer[AgentId, Action, Config, UtilityType],
     debug: Boolean = false)(implicit utilEv: Numeric[UtilityType])
-  extends DcopVertex[AgentId, Action, AdoptConfig[AgentId, Action, UtilityType, Config] forSome { type Config <: AdoptConfig[AgentId, Action, UtilityType, Config] }, UtilityType](initialState)(optimizer, debug) {
+  extends DcopVertex[AgentId, Action, Config, UtilityType](initialState)(optimizer, debug) {
 
   override type Signal = (Action, Boolean, Option[UtilityType], Option[(Option[UtilityType], UtilityType)], Map[AgentId, Action])
 

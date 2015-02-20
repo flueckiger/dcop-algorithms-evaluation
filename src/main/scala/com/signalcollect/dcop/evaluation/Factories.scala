@@ -5,7 +5,10 @@ import scala.collection.immutable
 import scala.collection.mutable
 import scala.util.Random
 
+import com.signalcollect.dcop.graph.DcopEdge
+import com.signalcollect.dcop.graph.SimpleDcopVertex
 import com.signalcollect.dcop.modules.Configuration
+import com.signalcollect.dcop.modules.SimpleConfig
 
 object Factories {
   def simpleConfig[AgentId, Action, UtilityType, DefaultUtility](
@@ -44,19 +47,19 @@ object Factories {
     new EavAdoptConfig(agentId, domain(0), a, Map.empty, c, utilities, defaultUtilityCache(defaultUtility))
   }
 
-  def simpleDsaAVertex[AgentId, Action, UtilityType](
+  def simpleDsaAVertex[AgentId, Action, Config <: SimpleConfig[AgentId, Action, UtilityType, Config] with EavConfig[AgentId, Action, UtilityType, Config], UtilityType](
     changeProbability: Double,
     debug: Boolean = false)(
-      config: EavSimpleConfig[AgentId, Action, UtilityType])(implicit utilEv: Numeric[UtilityType]) =
-    new EavSimpleDcopVertex(config)(new EavSimpleDsaAOptimizer(changeProbability), debug)
+      config: Config with SimpleConfig[AgentId, Action, UtilityType, Config] with EavConfig[AgentId, Action, UtilityType, Config])(implicit utilEv: Numeric[UtilityType]) =
+    new SimpleDcopVertex(config)(new EavSimpleDsaAOptimizer(changeProbability), debug)
 
-  def adoptVertex[AgentId, Action, UtilityType](
+  def adoptVertex[AgentId, Action, Config <: AdoptConfig[AgentId, Action, UtilityType, Config], UtilityType](
     debug: Boolean = false)(
-      config: AdoptConfig[AgentId, Action, UtilityType, Config] forSome { type Config <: AdoptConfig[AgentId, Action, UtilityType, Config] })(implicit utilEv: Numeric[UtilityType]) =
+      config: Config with AdoptConfig[AgentId, Action, UtilityType, Config])(implicit utilEv: Numeric[UtilityType]) =
     new AdoptDcopVertex(config)(new AdoptOptimizer, debug)
 
-  def simpleEdge[AgentId, Action, UtilityType](config: UtilityConfig[AgentId, Action, UtilityType, _]) =
-    new EavSimpleDcopEdge[AgentId, Action, UtilityType](config.centralVariableAssignment._1)
+  def dcopEdge[AgentId](config: Configuration[AgentId, _, _]) =
+    new DcopEdge(config.centralVariableAssignment._1)
 
   def adoptEdge[AgentId](config: Configuration[AgentId, _, _]) =
     new AdoptDcopEdge(config.centralVariableAssignment._1)

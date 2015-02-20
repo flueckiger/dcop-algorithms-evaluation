@@ -20,9 +20,9 @@ class EavAdoptConfig[AgentId, Action, UtilityType](
   private val signalThreshold: collection.Map[AgentId, UtilityType] = Map.empty[AgentId, UtilityType],
   private val signalUtilityBounds: Option[(Option[UtilityType], UtilityType)] = None)(
     implicit val utilEv: Numeric[UtilityType])
-  extends EavConfig[AgentId, Action, UtilityType, EavAdoptConfig[AgentId, Action, UtilityType]]
+  extends AdoptConfig[AgentId, Action, UtilityType, EavAdoptConfig[AgentId, Action, UtilityType]]
   with AdoptPreprocessingConfig[AgentId, Action, UtilityType, EavAdoptConfig[AgentId, Action, UtilityType]]
-  with AdoptConfig[AgentId, Action, UtilityType, EavAdoptConfig[AgentId, Action, UtilityType]]
+  with EavConfig[AgentId, Action, UtilityType, EavAdoptConfig[AgentId, Action, UtilityType]]
   with Equals {
   override var parent: AgentId = agentId
   override var higherNeighbors: collection.Set[AgentId] = Set.empty

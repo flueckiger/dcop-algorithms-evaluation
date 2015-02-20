@@ -1,5 +1,7 @@
 package com.signalcollect.dcop.evaluation
 
+import com.signalcollect.dcop.modules.UtilityConfig
+
 trait AdoptConfig[AgentId, Action, UtilityType, +Config <: AdoptConfig[AgentId, Action, UtilityType, Config]] extends UtilityConfig[AgentId, Action, UtilityType, Config] {
   private[this]type Context = collection.Map[AgentId, Action]
   private[this]type UtilityBounds = collection.Map[(AgentId, Action), (Option[UtilityType], UtilityType, UtilityType, Context)]
