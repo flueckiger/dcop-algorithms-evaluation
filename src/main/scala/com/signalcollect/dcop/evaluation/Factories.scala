@@ -18,7 +18,7 @@ object Factories {
       agentId: AgentId,
       domain: Seq[Action],
       domainNeighborhood: collection.Map[AgentId, Seq[Action]],
-      utilities: collection.Map[(AgentId, Action, Action), UtilityType])(implicit ev: DefaultUtility => UtilityType) = {
+      utilities: collection.Map[(AgentId, Action, Action), UtilityType])(implicit ev: DefaultUtility => UtilityType, utilEv: Ordering[UtilityType]) = {
     val (a, b, c) = neighborhoodCache(domain, domainNeighborhood)
     new EavSimpleConfig(agentId, domain(0), a, b, c, utilities, defaultUtilityCache(defaultUtility))
   }
@@ -30,7 +30,7 @@ object Factories {
       agentId: AgentId,
       domain: Seq[Action],
       domainNeighborhood: collection.Map[AgentId, Seq[Action]],
-      utilities: collection.Map[(AgentId, Action, Action), UtilityType])(implicit ev: DefaultUtility => UtilityType) = {
+      utilities: collection.Map[(AgentId, Action, Action), UtilityType])(implicit ev: DefaultUtility => UtilityType, utilEv: Ordering[UtilityType]) = {
     val (a, b, c, d) = neighborhoodCache(agentId, domain, domainNeighborhood)
     new EavSimpleConfig(agentId, a, b, c, d, utilities, defaultUtilityCache(defaultUtility))
   }
@@ -52,6 +52,12 @@ object Factories {
     debug: Boolean = false)(
       config: Config with SimpleConfig[AgentId, Action, UtilityType, Config] with EavConfig[AgentId, Action, UtilityType, Config])(implicit utilEv: Numeric[UtilityType]) =
     new SimpleDcopVertex(config)(new EavSimpleDsaAOptimizer(changeProbability), debug)
+
+  def simpleDsaBVertex[AgentId, Action, Config <: SimpleConfig[AgentId, Action, UtilityType, Config] with EavConfig[AgentId, Action, UtilityType, Config], UtilityType](
+    changeProbability: Double,
+    debug: Boolean = false)(
+      config: Config with SimpleConfig[AgentId, Action, UtilityType, Config] with EavConfig[AgentId, Action, UtilityType, Config])(implicit utilEv: Numeric[UtilityType]) =
+    new SimpleDcopVertex(config)(new EavSimpleDsaBOptimizer(changeProbability), debug)
 
   def adoptVertex[AgentId, Action, Config <: AdoptConfig[AgentId, Action, UtilityType, Config], UtilityType](
     debug: Boolean = false)(

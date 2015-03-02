@@ -10,7 +10,8 @@ class EavSimpleConfig[AgentId, Action, UtilityType](
   override val domainNeighborhood: collection.Map[AgentId, Set[Action]],
   override val utilities: collection.Map[(AgentId, Action, Action), UtilityType],
   override val defaultUtility: UtilityType,
-  override val numberOfCollects: Long = 0L)
+  override val numberOfCollects: Long = 0L)(
+    implicit val utilEv: Ordering[UtilityType])
   extends SimpleConfig[AgentId, Action, UtilityType, EavSimpleConfig[AgentId, Action, UtilityType]]
   with EavConfig[AgentId, Action, UtilityType, EavSimpleConfig[AgentId, Action, UtilityType]] {
   override def withCentralVariableAssignment(value: Action) =
