@@ -22,8 +22,7 @@ class EavAdoptConfig[AgentId, Action, UtilityType](
     implicit val utilEv: Numeric[UtilityType])
   extends AdoptConfig[AgentId, Action, UtilityType, EavAdoptConfig[AgentId, Action, UtilityType]]
   with AdoptPreprocessingConfig[AgentId, Action, UtilityType, EavAdoptConfig[AgentId, Action, UtilityType]]
-  with EavConfig[AgentId, Action, UtilityType, EavAdoptConfig[AgentId, Action, UtilityType]]
-  with Equals {
+  with EavConfig[AgentId, Action, UtilityType, EavAdoptConfig[AgentId, Action, UtilityType]] {
   override var parent: AgentId = agentId
   override var higherNeighbors: collection.Set[AgentId] = Set.empty
   override var children: collection.Set[AgentId] = Set.empty
@@ -110,72 +109,27 @@ class EavAdoptConfig[AgentId, Action, UtilityType](
     copy
   }
 
-  override def equals(that: Any): Boolean = that match {
-    case that: EavAdoptConfig[AgentId, Action, UtilityType] =>
-      (this eq that) ||
-        (that canEqual this) &&
-        agentId == that.agentId &&
-        centralVariableValue == that.centralVariableValue &&
-        domain == that.domain &&
-        neighborhood == that.neighborhood &&
-        domainNeighborhood == that.domainNeighborhood &&
-        utilities == that.utilities &&
-        defaultUtility == that.defaultUtility &&
-        numberOfCollects == that.numberOfCollects &&
-        threshold == that.threshold &&
-        utilityBounds == that.utilityBounds &&
-        computedMove == that.computedMove &&
-        terminateReceived == that.terminateReceived &&
-        terminateSent == that.terminateSent &&
-        terminate == that.terminate &&
-        signalThreshold == that.signalThreshold &&
-        signalUtilityBounds == that.signalUtilityBounds
-    case _ => false
-  }
-
-  override def canEqual(other: Any): Boolean =
-    other.isInstanceOf[EavAdoptConfig[AgentId, Action, UtilityType]]
-
-  override val hashCode: Int =
-    41 * (41 * (41 * (41 * (41 * (41 * (41 * (41 * (41 * (41 * (41 * (41 * (41 * (41 * (41 * (41 +
-      agentId.hashCode) +
-      centralVariableValue.hashCode) +
-      domain.hashCode) +
-      neighborhood.hashCode) +
-      domainNeighborhood.hashCode) +
-      utilities.hashCode) +
-      defaultUtility.hashCode) +
-      numberOfCollects.hashCode) +
-      threshold.hashCode) +
-      utilityBounds.hashCode) +
-      computedMove.hashCode) +
-      terminateReceived.hashCode) +
-      terminateSent.hashCode) +
-      terminate.hashCode) +
-      signalThreshold.hashCode) +
-      signalUtilityBounds.hashCode
-
   override def toString =
     this.getClass.getName + "(\n" +
-      "  agentId = " + agentId.toString + '\n' +
-      "  centralVariableValue = " + centralVariableValue.toString + '\n' +
-      "  domain = " + domain.toString + '\n' +
-      "  neighborhood = " + orderedNeighborhood.toString + '\n' +
-      "  domainNeighborhood = " + domainNeighborhood.toString + '\n' +
-      "  utilities = " + utilities.toString + '\n' +
-      "  defaultUtility = " + defaultUtility.toString + '\n' +
-      "  numberOfCollects = " + numberOfCollects.toString + '\n' +
-      "  threshold = " + threshold.toString + '\n' +
-      "  utilityBounds = " + utilityBounds.toString + '\n' +
-      "  computedMove = " + computedMove.toString + '\n' +
-      "  terminateReceived = " + terminateReceived.toString + '\n' +
-      "  terminateSent = " + terminateSent.toString + '\n' +
-      "  terminate = " + terminate.toString + '\n' +
-      "  signalThreshold = " + signalThreshold.toString + '\n' +
-      "  signalUtilityBounds = " + signalUtilityBounds.toString + '\n' +
-      "  parent = " + parent.toString + '\n' +
-      "  higherNeighbors = " + higherNeighbors.toString + '\n' +
-      "  children = " + children.toString + '\n' +
-      "  maxUtility = " + maxUtility.toString + '\n' +
+      "  agentId = " + agentId + '\n' +
+      "  centralVariableValue = " + centralVariableValue + '\n' +
+      "  domain = " + domain + '\n' +
+      "  neighborhood = " + orderedNeighborhood + '\n' +
+      "  domainNeighborhood = " + domainNeighborhood + '\n' +
+      "  utilities = " + utilities + '\n' +
+      "  defaultUtility = " + defaultUtility + '\n' +
+      "  numberOfCollects = " + numberOfCollects + '\n' +
+      "  threshold = " + threshold + '\n' +
+      "  utilityBounds = " + utilityBounds + '\n' +
+      "  computedMove = " + computedMove + '\n' +
+      "  terminateReceived = " + terminateReceived + '\n' +
+      "  terminateSent = " + terminateSent + '\n' +
+      "  terminate = " + terminate + '\n' +
+      "  signalThreshold = " + signalThreshold + '\n' +
+      "  signalUtilityBounds = " + signalUtilityBounds + '\n' +
+      "  parent = " + parent + '\n' +
+      "  higherNeighbors = " + higherNeighbors + '\n' +
+      "  children = " + children + '\n' +
+      "  maxUtility = " + maxUtility + '\n' +
       ')'
 }
