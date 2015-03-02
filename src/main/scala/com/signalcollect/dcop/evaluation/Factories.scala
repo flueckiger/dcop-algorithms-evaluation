@@ -6,9 +6,13 @@ import scala.collection.mutable
 import scala.util.Random
 
 import com.signalcollect.dcop.graph.DcopEdge
+import com.signalcollect.dcop.graph.RankedDcopEdge
+import com.signalcollect.dcop.graph.RankedDcopVertex
 import com.signalcollect.dcop.graph.SimpleDcopVertex
 import com.signalcollect.dcop.modules.Configuration
+import com.signalcollect.dcop.modules.RankedConfig
 import com.signalcollect.dcop.modules.SimpleConfig
+import com.signalcollect.dcop.modules.UtilityConfig
 
 object Factories {
   def simpleConfig[AgentId, Action, UtilityType, DefaultUtility](
@@ -35,6 +39,30 @@ object Factories {
     new EavSimpleConfig(agentId, a, b, c, d, utilities, defaultUtilityCache(defaultUtility))
   }
 
+  def rankedConfig[AgentId, Action, UtilityType, DefaultUtility](
+    defaultUtility: DefaultUtility,
+    neighborhoodCache: NeighborhoodCache[AgentId, Action] = new NeighborhoodCache[AgentId, Action],
+    defaultUtilityCache: FunctionCache[UtilityType] = new FunctionCache[UtilityType])(
+      agentId: AgentId,
+      domain: Seq[Action],
+      domainNeighborhood: collection.Map[AgentId, Seq[Action]],
+      utilities: collection.Map[(AgentId, Action, Action), UtilityType])(implicit ev: DefaultUtility => UtilityType, utilEv: Numeric[UtilityType]) = {
+    val (a, b, c) = neighborhoodCache(domain, domainNeighborhood)
+    new EavRankedConfig(agentId, domain(0), a, b, c, utilities, defaultUtilityCache(defaultUtility))
+  }
+
+  def rankedConfigRandom[AgentId, Action, UtilityType, DefaultUtility](
+    defaultUtility: DefaultUtility,
+    neighborhoodCache: RandomNeighborhoodCache[AgentId, Action] = new RandomNeighborhoodCache[AgentId, Action],
+    defaultUtilityCache: FunctionCache[UtilityType] = new FunctionCache[UtilityType])(
+      agentId: AgentId,
+      domain: Seq[Action],
+      domainNeighborhood: collection.Map[AgentId, Seq[Action]],
+      utilities: collection.Map[(AgentId, Action, Action), UtilityType])(implicit ev: DefaultUtility => UtilityType, utilEv: Numeric[UtilityType]) = {
+    val (a, b, c, d) = neighborhoodCache(agentId, domain, domainNeighborhood)
+    new EavRankedConfig(agentId, a, b, c, d, utilities, defaultUtilityCache(defaultUtility))
+  }
+
   def adoptConfig[AgentId, Action, UtilityType, DefaultUtility](
     defaultUtility: DefaultUtility,
     neighborhoodCache: NeighborhoodCache[AgentId, Action] = new NeighborhoodCache[AgentId, Action],
@@ -51,23 +79,38 @@ object Factories {
     changeProbability: Double,
     debug: Boolean = false)(
       config: Config with SimpleConfig[AgentId, Action, UtilityType, Config] with EavConfig[AgentId, Action, UtilityType, Config])(implicit utilEv: Numeric[UtilityType]) =
-    new SimpleDcopVertex(config)(new EavSimpleDsaAOptimizer(changeProbability), debug)
+    new SimpleDcopVertex(config)(new EavSimpleDsaAOptimizer(changeProbability), debug = debug)
 
   def simpleDsaBVertex[AgentId, Action, Config <: SimpleConfig[AgentId, Action, UtilityType, Config] with EavConfig[AgentId, Action, UtilityType, Config], UtilityType](
     changeProbability: Double,
     debug: Boolean = false)(
       config: Config with SimpleConfig[AgentId, Action, UtilityType, Config] with EavConfig[AgentId, Action, UtilityType, Config])(implicit utilEv: Numeric[UtilityType]) =
-    new SimpleDcopVertex(config)(new EavSimpleDsaBOptimizer(changeProbability), debug)
+    new SimpleDcopVertex(config)(new EavSimpleDsaBOptimizer(changeProbability), debug = debug)
+
+  def rankedDsaAVertex[AgentId, Action, Config <: RankedConfig[AgentId, Action, UtilityType, Config] with EavConfig[AgentId, Action, UtilityType, Config], UtilityType](
+    changeProbability: Double,
+    debug: Boolean = false)(
+      config: Config with RankedConfig[AgentId, Action, UtilityType, Config] with EavConfig[AgentId, Action, UtilityType, Config])(implicit utilEv: Fractional[UtilityType]) =
+    new RankedDcopVertex(config)(new EavRankedDsaAOptimizer(changeProbability), debug = debug)
+
+  def rankedDsaBVertex[AgentId, Action, Config <: RankedConfig[AgentId, Action, UtilityType, Config] with EavConfig[AgentId, Action, UtilityType, Config], UtilityType](
+    changeProbability: Double,
+    debug: Boolean = false)(
+      config: Config with RankedConfig[AgentId, Action, UtilityType, Config] with EavConfig[AgentId, Action, UtilityType, Config])(implicit utilEv: Fractional[UtilityType]) =
+    new RankedDcopVertex(config)(new EavRankedDsaBOptimizer(changeProbability), debug = debug)
 
   def adoptVertex[AgentId, Action, Config <: AdoptConfig[AgentId, Action, UtilityType, Config], UtilityType](
     debug: Boolean = false)(
       config: Config with AdoptConfig[AgentId, Action, UtilityType, Config])(implicit utilEv: Numeric[UtilityType]) =
-    new AdoptDcopVertex(config)(new AdoptOptimizer, debug)
+    new AdoptDcopVertex(config)(new AdoptOptimizer, debug = debug)
 
-  def dcopEdge[AgentId](config: Configuration[AgentId, _, _]) =
+  def dcopEdge[AgentId]()(config: Configuration[AgentId, _, _]) =
     new DcopEdge(config.centralVariableAssignment._1)
 
-  def adoptEdge[AgentId](config: Configuration[AgentId, _, _]) =
+  def rankedEdge[AgentId, UtilityType]()(config: UtilityConfig[AgentId, _, UtilityType, _])(implicit utilEv: Fractional[UtilityType]) =
+    new RankedDcopEdge(config.centralVariableAssignment._1)
+
+  def adoptEdge[AgentId]()(config: Configuration[AgentId, _, _]) =
     new AdoptDcopEdge(config.centralVariableAssignment._1)
 
   /**

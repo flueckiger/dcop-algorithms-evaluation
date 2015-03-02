@@ -23,7 +23,7 @@ object Main {
           println("Problem " + (index + 1) + " of " + problems.length + ": " + path)
 
           val source = Source.fromInputStream(getClass.getResourceAsStream("datasets/" + path))(Codec.UTF8)
-          Import.importEavFile(source, graph, alphaStream(0), Stream.from(0), utilityTransformation(negateUtility))(cspViolationCalculation, x => x: UtilityType)(Factories.adoptConfig(0))(Factories.adoptVertex(), Factories.adoptEdge)
+          Import.importEavFile(source, graph, alphaStream(0), Stream.from(0), utilityTransformation(negateUtility))(cspViolationCalculation, x => x: UtilityType)(Factories.adoptConfig(0))(Factories.adoptVertex(), Factories.adoptEdge())
           source.close()
 
           AdoptPreprocessing(graph, implicitly[Numeric[UtilityType]].zero).execute
