@@ -113,9 +113,6 @@ object Factories {
   def adoptEdge[AgentId]()(config: Configuration[AgentId, _, _]) =
     new AdoptDcopEdge(config.centralVariableAssignment._1)
 
-  /**
-   * Used to provide reference equality for equal objects, optimizing object comparisons.
-   */
   protected class NeighborhoodCache[AgentId, Action] {
     private[this] val domainCache = TrieMap.empty[Seq[Action], Set[Action]]
     private[this] val neighborhoodCache = TrieMap.empty[collection.Map[AgentId, Seq[Action]], (Map[AgentId, Action], collection.Map[AgentId, Set[Action]])]
