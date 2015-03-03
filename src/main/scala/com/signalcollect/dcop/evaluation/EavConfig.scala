@@ -18,7 +18,7 @@ trait EavConfig[AgentId, Action, UtilityType, +Config <: EavConfig[AgentId, Acti
   // This method is already implemented in a superclass, but subclasses have to override it.
   override def centralVariableValue: Action = ???
 
-  override def computeExpectedNumberOfConflicts: Int = {
+  override def expectedConflicts(centralVariableValue: Action) = {
     val utilityBounds = utilities.groupBy(x => x._1._1).map(x => (x._1,
       if (domain.forall(action =>
         domainNeighborhood(x._1).forall(actionNeighbor =>
@@ -27,7 +27,8 @@ trait EavConfig[AgentId, Action, UtilityType, +Config <: EavConfig[AgentId, Acti
       else
         (x._2.values.fold(defaultUtility)(_ min _), x._2.values.fold(defaultUtility)(_ max _))))
 
-    domainNeighborhood.count(x => utilityBounds.get(x._1) match {
+    val conflicts = Set.newBuilder[AgentId]
+    domainNeighborhood.withFilter(x => utilityBounds.get(x._1) match {
       case Some((minUtility, maxUtility)) =>
         (neighborhood.get(x._1) match {
           case Some(actionNeighbor) =>
@@ -35,7 +36,8 @@ trait EavConfig[AgentId, Action, UtilityType, +Config <: EavConfig[AgentId, Acti
           case None => minUtility
         }) < maxUtility
       case None => false
-    })
+    }).foreach(conflicts += _._1)
+    conflicts.result
   }
 
   protected def orderedNeighborhood: collection.Map[AgentId, Action] = {
