@@ -4,6 +4,7 @@ import scala.collection.immutable
 import scala.collection.mutable.LinkedHashSet
 import scala.collection.mutable.UnrolledBuffer
 import scala.reflect.ClassTag
+import scala.util.Random
 
 import com.signalcollect.Graph
 import com.signalcollect.Vertex
@@ -44,7 +45,7 @@ object AdoptPreprocessing {
         val childrenBuilder = immutable.HashSet.newBuilder[AgentId]
         if (agentId != parent)
           higherNeighborsBuilder += parent
-        for (targetId <- targetIds.filterNot(_ == parent)) {
+        for (targetId <- Random.shuffle(targetIds.filterNot(_ == parent))) {
           val (a, b, c, d, isHigherNeighbor) = processConnectedComponent(targetId, agentId, maxUtilityUpdated, verticesEnteredUpdated, verticesLeftUpdated)
           if (a.nonEmpty) {
             subTree concat a
@@ -68,12 +69,12 @@ object AdoptPreprocessing {
       }
     }
 
-    val agentIds = LinkedHashSet(graph.mapReduce(
+    val agentIds = LinkedHashSet(Random.shuffle(graph.mapReduce(
       (vertex: VertexType) =>
         UnrolledBuffer(vertex.id),
       (x: UnrolledBuffer[AgentId], y: UnrolledBuffer[AgentId]) =>
         if (x.isEmpty) y else x concat y,
-      UnrolledBuffer.empty): _*)
+      UnrolledBuffer.empty)): _*)
 
     while (agentIds.nonEmpty) {
       val (componentAgentIds, maxUtility, _, _, _) = processConnectedComponent(agentIds.head, agentIds.head, zero)
