@@ -4,6 +4,7 @@ import java.math.MathContext
 import java.util.Locale
 
 import scala.collection.GenTraversableOnce
+import scala.collection.generic.Growable
 import scala.collection.immutable
 import scala.collection.mutable
 import scala.io.Source
@@ -53,34 +54,7 @@ object Import {
         configFactory: (AgentId, Seq[Action], collection.Map[AgentId, Seq[Action]], collection.Map[(AgentId, Action, Action), UtilityType]) => Config)(
           vertexFactory: Config => VertexType,
           edgeFactory: Config => EdgeType): immutable.IndexedSeq[VertexType] = {
-    val variables = mutable.Map.empty[BigInt, BigInt]
-    val constraints = mutable.Map.empty[(BigInt, BigInt), mutable.Map[(BigInt, BigInt), Option[BigDecimal]]]
-    var constraintOption: Option[(Boolean, mutable.Map[(BigInt, BigInt), Option[BigDecimal]])] = None
-
-    for (x <- source.getLines() map (_.toUpperCase(Locale.ROOT))) x match {
-      case fExp(val1, val2, utility) =>
-        val constraint = constraintOption.get
-        val x = BigInt(val1)
-        val y = BigInt(val2)
-        constraint._2(if (constraint._1) (x, y) else (y, x)) = Some(BigDecimal(utility, MathContext.UNLIMITED))
-      case nogoodExp(val1, val2) =>
-        val constraint = constraintOption.get
-        val x = BigInt(val1)
-        val y = BigInt(val2)
-        constraint._2(if (constraint._1) (x, y) else (y, x)) = None
-      case constraintExp(varId1, varId2) =>
-        val x = BigInt(varId1)
-        val y = BigInt(varId2)
-        if (x == y)
-          throw new IllegalArgumentException("A constraint has to be bound to different variables.")
-        constraintOption = Some((x < y, constraints.getOrElseUpdate(if (x < y) (x, y) else (y, x), mutable.Map.empty[(BigInt, BigInt), Option[BigDecimal]])))
-      case variableExp(varId, range) =>
-        variables(BigInt(varId)) = BigInt(range)
-        constraintOption = None
-      case agentExp() => constraintOption = None
-      case emptyOrCommentExp() => // Ignore.
-      case x: String => throw new IllegalArgumentException(".EAV file could not be parsed at: " + x)
-    }
+    val (variables, constraints) = parseEavFile(source)
 
     val range = variables.values.max
     if (!range.isValidInt)
@@ -150,5 +124,119 @@ object Import {
     }
 
     vertices.result
+  }
+
+  /**
+   * Converts a .EAV file (see [[importEavFile]]) into the XCSP format as used for FRODO ([[http://frodo2.sourceforge.net/]]).
+   *
+   * @param source                    the .EAV source.
+   * @param target                    the FRODO XCSP target.
+   * @param maximize                  `true` if a maximization problem.
+   * @param defaultUtility            the default utility.
+   * @param cspViolationCalculation   a function that calculates a utility for violated CSP constraints, given the utilities of all COP constraints.
+   * @return                          the target.
+   */
+  def convertEavToFrodoXcsp[A <: Growable[Char]](
+    source: Source,
+    target: A,
+    maximize: Boolean,
+    defaultUtility: BigDecimal,
+    cspViolationCalculation: Iterable[Iterable[BigDecimal]] => BigDecimal): A = {
+    val (variables, constraints) = {
+      val (x, y) = parseEavFile(source)
+      (x.toIndexedSeq.sortBy(_._1), y.toIndexedSeq.sortBy(_._1))
+    }
+
+    val cspViolation = if (constraints.exists(_._2.values.exists(_.isEmpty)))
+      Some(cspViolationCalculation(constraints.map(_._2.values.flatten)))
+    else
+      None
+
+    target ++= """<instance>
+  <presentation maxConstraintArity="2" maximize="""" + (if (maximize) "true" else "false") + """" format="XCSP 2.1_FRODO" />
+
+  <agents nbAgents="""" + variables.length + """">
+"""
+
+    for ((x, _) <- variables)
+      target ++= """    <agent name="""" + x + """" />
+"""
+
+    target ++= """  </agents>
+
+  <domains nbDomains="""" + variables.length + """">
+"""
+
+    for ((x, y) <- variables)
+      target ++= """    <domain name="""" + x + """" nbValues="""" + y + """">0..""" + (y - 1) + """</domain>
+"""
+
+    target ++= """  </domains>
+
+  <variables nbVariables="""" + variables.length + """">
+"""
+
+    for ((x, _) <- variables)
+      target ++= """    <variable name="""" + x + """" domain="""" + x + """" agent="""" + x + """" />
+"""
+
+    target ++= """  </variables>
+
+  <relations nbRelations="""" + constraints.length + """">
+"""
+
+    for ((x, y) <- constraints)
+      target ++= """    <relation name="""" + x._1 + ' ' + x._2 + """" arity="2" nbTuples="""" + y.size + """" semantics="soft" defaultCost="""" + defaultUtility + """">""" + y.keys.toSeq.sorted.map(x => """
+      """ + y(x).getOrElse(cspViolation.get) + ": " + x._1 + ' ' + x._2).mkString(" |") + """
+    </relation>
+"""
+
+    target ++= """  </relations>
+
+  <constraints nbConstraints="""" + constraints.length + """">
+"""
+
+    for ((x, y) <- constraints)
+      target ++= """    <constraint name="""" + x._1 + ' ' + x._2 + """" arity="2" scope="""" + x._1 + ' ' + x._2 + """" reference="""" + x._1 + ' ' + x._2 + """" />
+"""
+
+    target ++= """  </constraints>
+</instance>
+"""
+
+    target
+  }
+
+  private def parseEavFile(source: Source): (collection.Map[BigInt, BigInt], collection.Map[(BigInt, BigInt), collection.Map[(BigInt, BigInt), Option[BigDecimal]]]) = {
+    val variables = mutable.Map.empty[BigInt, BigInt]
+    val constraints = mutable.Map.empty[(BigInt, BigInt), mutable.Map[(BigInt, BigInt), Option[BigDecimal]]]
+    var constraintOption: Option[(Boolean, mutable.Map[(BigInt, BigInt), Option[BigDecimal]])] = None
+
+    for (x <- source.getLines() map (_.toUpperCase(Locale.ROOT))) x match {
+      case fExp(val1, val2, utility) =>
+        val constraint = constraintOption.get
+        val x = BigInt(val1)
+        val y = BigInt(val2)
+        constraint._2(if (constraint._1) (x, y) else (y, x)) = Some(BigDecimal(utility, MathContext.UNLIMITED))
+      case nogoodExp(val1, val2) =>
+        val constraint = constraintOption.get
+        val x = BigInt(val1)
+        val y = BigInt(val2)
+        constraint._2(if (constraint._1) (x, y) else (y, x)) = None
+      case constraintExp(varId1, varId2) =>
+        val x = BigInt(varId1)
+        val y = BigInt(varId2)
+        if (x == y)
+          throw new IllegalArgumentException("A constraint has to be bound to different variables.")
+        constraintOption = Some((x < y, constraints.getOrElseUpdate(if (x < y) (x, y) else (y, x), mutable.Map.empty[(BigInt, BigInt), Option[BigDecimal]])))
+      case variableExp(varId, range) =>
+        variables(BigInt(varId)) = BigInt(range)
+        constraintOption = None
+      case agentExp() => constraintOption = None
+      case emptyOrCommentExp() => // Ignore.
+      case x: String => throw new IllegalArgumentException(".EAV file could not be parsed at: " + x)
+    }
+
+    (variables, constraints)
   }
 }
