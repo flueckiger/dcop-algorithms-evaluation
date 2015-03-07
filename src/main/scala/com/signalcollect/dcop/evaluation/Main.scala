@@ -18,12 +18,12 @@ object Main {
 
     try {
       val problems = ConfigFactory.parseResources(getClass, "datasets.conf").getConfigList("problems").toIndexedSeq
-      for (x <- problems.zipWithIndex) (x._1.getString("path"), x._1.getBoolean("negate"), x._2) match {
-        case (path, negateUtility, index) =>
+      for (x <- problems.zipWithIndex) (x._1.getString("path"), x._1.getBoolean("maximize"), x._2) match {
+        case (path, maximize, index) =>
           println("Problem " + (index + 1) + " of " + problems.length + ": " + path)
 
           val source = Source.fromInputStream(getClass.getResourceAsStream("datasets/" + path))(Codec.UTF8)
-          Import.importEavFile(source, graph, alphaStream(0), Stream.from(0), utilityTransformation(negateUtility))(cspViolationCalculation, x => x: UtilityType)(Factories.adoptConfig(0))(Factories.adoptVertex(), Factories.adoptEdge())
+          Import.importEavFile(source, graph, alphaStream(0), Stream.from(0), utilityTransformation(maximize))(cspViolationCalculation, x => x: UtilityType)(Factories.adoptConfig(0))(Factories.adoptVertex(), Factories.adoptEdge())
           source.close()
 
           AdoptPreprocessing(graph, implicitly[Numeric[UtilityType]].zero).execute
@@ -34,11 +34,11 @@ object Main {
     }
   }
 
-  def utilityTransformation(negate: Boolean) = {
-    if (negate)
-      (x: BigDecimal) => -x
-    else
+  def utilityTransformation(maximize: Boolean) = {
+    if (maximize)
       (x: BigDecimal) => x
+    else
+      (x: BigDecimal) => -x
   }
 
   def cspViolationCalculation(x: Iterable[Iterable[BigDecimal]]) =
