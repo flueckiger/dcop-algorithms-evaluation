@@ -129,19 +129,24 @@ object Import {
   /**
    * Converts a .EAV file (see [[importEavFile]]) into the XCSP format as used for FRODO ([[http://frodo2.sourceforge.net/]]).
    *
+   * Some algorithms of FRODO (e.g. SynchBB) assume to solve either a minimization problem without negative costs,
+   * or a maximization problem without positive utilities.
+   * Therefore, the utilities are transformed in way to be compatible with such algorithms.
+   * In order to correct the transformation, a offset is returned that has to be added to the global utility returned by FRODO.
+   *
    * @param source                    the .EAV source.
    * @param target                    the FRODO XCSP target.
    * @param maximize                  `true` if a maximization problem.
    * @param defaultUtility            the default utility.
    * @param cspViolationCalculation   a function that calculates a utility for violated CSP constraints, given the utilities of all COP constraints.
-   * @return                          the target.
+   * @return                          the offset to be added to the global utility.
    */
-  def convertEavToFrodoXcsp[A <: Growable[Char]](
+  def convertEavToFrodoXcsp(
     source: Source,
-    target: A,
+    target: Growable[Char],
     maximize: Boolean,
     defaultUtility: BigDecimal,
-    cspViolationCalculation: Iterable[Iterable[BigDecimal]] => BigDecimal): A = {
+    cspViolationCalculation: Iterable[Iterable[BigDecimal]] => BigDecimal): BigDecimal = {
     val (variables, constraints) = {
       val (x, y) = parseEavFile(source)
       (x.toIndexedSeq.sortBy(_._1), y.toIndexedSeq.sortBy(_._1))
@@ -151,6 +156,9 @@ object Import {
       Some(cspViolationCalculation(constraints.map(_._2.values.flatten)))
     else
       None
+
+    val offset = (constraints.view.flatMap(_._2.values) :+ cspViolation).flatten.foldLeft(defaultUtility)(
+      (x, y) => if (maximize) x max y else x min y)
 
     target ++= """<instance>
   <presentation maxConstraintArity="2" maximize="""" + (if (maximize) "true" else "false") + """" format="XCSP 2.1_FRODO" />
@@ -186,8 +194,8 @@ object Import {
 """
 
     for ((x, y) <- constraints)
-      target ++= """    <relation name="""" + x._1 + ' ' + x._2 + """" arity="2" nbTuples="""" + y.size + """" semantics="soft" defaultCost="""" + defaultUtility + """">""" + y.keys.toSeq.sorted.map(x => """
-      """ + y(x).getOrElse(cspViolation.get) + ": " + x._1 + ' ' + x._2).mkString(" |") + """
+      target ++= """    <relation name="""" + x._1 + ' ' + x._2 + """" arity="2" nbTuples="""" + y.size + """" semantics="soft" defaultCost="""" + (defaultUtility - offset) + """">""" + y.keys.toSeq.sorted.map(x => """
+      """ + (y(x).getOrElse(cspViolation.get) - offset) + ": " + x._1 + ' ' + x._2).mkString(" |") + """
     </relation>
 """
 
@@ -204,7 +212,7 @@ object Import {
 </instance>
 """
 
-    target
+    offset * constraints.length
   }
 
   private def parseEavFile(source: Source): (collection.Map[BigInt, BigInt], collection.Map[(BigInt, BigInt), collection.Map[(BigInt, BigInt), Option[BigDecimal]]]) = {
