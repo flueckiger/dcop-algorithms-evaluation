@@ -89,15 +89,39 @@ object Factories {
 
   def rankedDsaAVertex[AgentId, Action, Config <: RankedConfig[AgentId, Action, UtilityType, Config] with EavConfig[AgentId, Action, UtilityType, Config], UtilityType](
     changeProbability: Double,
+    baseRank: (Int, Int),
+    unchangedMoveRankFactor: (Int, Int) = (1, 1),
+    unchangedMoveRankAddend: (Int, Int) = (0, 1),
+    changedMoveRankFactor: (Int, Int) = (1, 1),
+    changedMoveRankAddend: (Int, Int) = (0, 1),
     debug: Boolean = false)(
       config: Config with RankedConfig[AgentId, Action, UtilityType, Config] with EavConfig[AgentId, Action, UtilityType, Config])(implicit utilEv: Fractional[UtilityType]) =
-    new RankedDcopVertex(config)(new EavRankedDsaAOptimizer(changeProbability), debug = debug)
+    new RankedDcopVertex(config)(
+      new EavRankedDsaAOptimizer(changeProbability),
+      baseRank = baseRank,
+      unchangedMoveRankFactor = unchangedMoveRankFactor,
+      unchangedMoveRankAddend = unchangedMoveRankAddend,
+      changedMoveRankFactor = changedMoveRankFactor,
+      changedMoveRankAddend = changedMoveRankAddend,
+      debug = debug)
 
   def rankedDsaBVertex[AgentId, Action, Config <: RankedConfig[AgentId, Action, UtilityType, Config] with EavConfig[AgentId, Action, UtilityType, Config], UtilityType](
     changeProbability: Double,
+    baseRank: (Int, Int),
+    unchangedMoveRankFactor: (Int, Int) = (1, 1),
+    unchangedMoveRankAddend: (Int, Int) = (0, 1),
+    changedMoveRankFactor: (Int, Int) = (1, 1),
+    changedMoveRankAddend: (Int, Int) = (0, 1),
     debug: Boolean = false)(
       config: Config with RankedConfig[AgentId, Action, UtilityType, Config] with EavConfig[AgentId, Action, UtilityType, Config])(implicit utilEv: Fractional[UtilityType]) =
-    new RankedDcopVertex(config)(new EavRankedDsaBOptimizer(changeProbability), debug = debug)
+    new RankedDcopVertex(config)(
+      new EavRankedDsaBOptimizer(changeProbability),
+      baseRank = baseRank,
+      unchangedMoveRankFactor = unchangedMoveRankFactor,
+      unchangedMoveRankAddend = unchangedMoveRankAddend,
+      changedMoveRankFactor = changedMoveRankFactor,
+      changedMoveRankAddend = changedMoveRankAddend,
+      debug = debug)
 
   def adoptVertex[AgentId, Action, Config <: AdoptConfig[AgentId, Action, UtilityType, Config], UtilityType](
     debug: Boolean = false)(

@@ -16,14 +16,14 @@ class EavRankedConfig[AgentId, Action, UtilityType](
   with EavConfig[AgentId, Action, UtilityType, EavRankedConfig[AgentId, Action, UtilityType]] {
   override val ranks = Map.empty[AgentId, UtilityType].withDefaultValue(utilEv.zero)
 
-  override def withCentralVariableAssignment(value: Action) =
-    copy(centralVariableValue = value)
-
   override def collect(neighborhood: Map[AgentId, Action], ranks: Map[AgentId, UtilityType]) =
     copy(neighborhood = neighborhood, ranks = ranks)
 
   override def collect(ranks: Map[AgentId, UtilityType]) =
     copy(ranks = ranks, numberOfCollects = numberOfCollects + 1)
+
+  override def changeMove(centralVariableValue: Action, ranks: Map[AgentId, UtilityType]) =
+    copy(centralVariableValue = centralVariableValue, ranks = ranks)
 
   private def copy(
     centralVariableValue: Action = centralVariableValue,
