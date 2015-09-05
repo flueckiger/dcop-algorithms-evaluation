@@ -74,12 +74,14 @@ object Import {
 
     val agentIdMap = (variables.keys.toSeq.sorted zip agentIds.toSeq.distinct).toMap
     val actionIdSeq = actionIds.toSeq.distinct.take(range.toInt).toIndexedSeq
-    val transformedUtilities = immutable.SortedSet(constraints.values.toSeq.flatMap(_.values.flatten): _*).toSeq.map(x => (x, { val y = utilityTransformation(x); (y, finalUtilityConversion(y)) })).toMap
+    val intermediateUtilities = immutable.SortedSet(constraints.values.toSeq.flatMap(_.values.flatten): _*).toSeq.map(x => (x, utilityTransformation(x))).toMap
 
     val cspViolation = if (constraints.values.exists(_.values.exists(_.isEmpty)))
-      Some(finalUtilityConversion(cspViolationCalculation(constraints.values.map(_.values.flatten.map(transformedUtilities(_)._1)))))
+      Some(cspViolationCalculation(constraints.values.map(_.values.flatten.map(intermediateUtilities(_)))))
     else
       None
+
+    val finalUtilities = (intermediateUtilities.values ++ cspViolation).toSeq.distinct.map(x => (x, finalUtilityConversion(x))).toMap
 
     // This cache variables are used to provide reference equality for equal objects,
     // optimizing object comparisons.
@@ -104,8 +106,8 @@ object Import {
         for (x <- constraints(if (ascending) (varId, neighbor) else (neighbor, varId)).toSeq.view.map(x => if (ascending) x else (x._1.swap, x._2)).sorted) x match {
           case ((val1, val2), utility) =>
             utilities(utilitiesKeyCache.getOrElseUpdate((neighborId, val1, val2), (neighborId, actionIdSeq(val1.toInt), actionIdSeq(val2.toInt)))) = utility match {
-              case Some(x) => transformedUtilities(x)._2
-              case None => cspViolation.get
+              case Some(x) => finalUtilities(intermediateUtilities(x))
+              case None => finalUtilities(cspViolation.get)
             }
         }
       }

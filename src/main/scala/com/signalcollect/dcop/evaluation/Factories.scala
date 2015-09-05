@@ -16,7 +16,7 @@ import com.signalcollect.dcop.modules.UtilityConfig
 
 object Factories {
   def simpleConfig[AgentId, Action, UtilityType, DefaultUtility](
-    defaultUtility: DefaultUtility,
+    defaultUtility: => DefaultUtility,
     neighborhoodCache: NeighborhoodCache[AgentId, Action] = new NeighborhoodCache[AgentId, Action],
     defaultUtilityCache: FunctionCache[UtilityType] = new FunctionCache[UtilityType])(
       agentId: AgentId,
@@ -28,7 +28,7 @@ object Factories {
   }
 
   def simpleConfigRandom[AgentId, Action, UtilityType, DefaultUtility](
-    defaultUtility: DefaultUtility,
+    defaultUtility: => DefaultUtility,
     neighborhoodCache: RandomNeighborhoodCache[AgentId, Action] = new RandomNeighborhoodCache[AgentId, Action],
     defaultUtilityCache: FunctionCache[UtilityType] = new FunctionCache[UtilityType])(
       agentId: AgentId,
@@ -40,7 +40,7 @@ object Factories {
   }
 
   def rankedConfig[AgentId, Action, UtilityType, DefaultUtility](
-    defaultUtility: DefaultUtility,
+    defaultUtility: => DefaultUtility,
     neighborhoodCache: NeighborhoodCache[AgentId, Action] = new NeighborhoodCache[AgentId, Action],
     defaultUtilityCache: FunctionCache[UtilityType] = new FunctionCache[UtilityType])(
       agentId: AgentId,
@@ -52,7 +52,7 @@ object Factories {
   }
 
   def rankedConfigRandom[AgentId, Action, UtilityType, DefaultUtility](
-    defaultUtility: DefaultUtility,
+    defaultUtility: => DefaultUtility,
     neighborhoodCache: RandomNeighborhoodCache[AgentId, Action] = new RandomNeighborhoodCache[AgentId, Action],
     defaultUtilityCache: FunctionCache[UtilityType] = new FunctionCache[UtilityType])(
       agentId: AgentId,
@@ -64,7 +64,7 @@ object Factories {
   }
 
   def adoptConfig[AgentId, Action, UtilityType, DefaultUtility](
-    defaultUtility: DefaultUtility,
+    defaultUtility: => DefaultUtility,
     neighborhoodCache: NeighborhoodCache[AgentId, Action] = new NeighborhoodCache[AgentId, Action],
     defaultUtilityCache: FunctionCache[UtilityType] = new FunctionCache[UtilityType])(
       agentId: AgentId,
