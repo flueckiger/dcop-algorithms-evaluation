@@ -9,4 +9,6 @@ trait EavUtility[AgentId, Action, Config <: EavConfig[AgentId, Action, UtilityTy
     config.neighborhood.transform((agentId, actionNeighbor) =>
       utilities.getOrElse((agentId, centralVariableValue, actionNeighbor), defaultUtility))
   }
+
+  override def utilityBounds(config: Config) = config.minMaxUtilities
 }

@@ -18,5 +18,7 @@ class AdoptDecisionRule[AgentId, Action, Config <: AdoptConfig[AgentId, Action, 
 
   override def computeUtilities(c: Config, a: Action) = ???
 
+  override def utilityBounds(c: Config) = ???
+
   override def utilEv = ???
 }

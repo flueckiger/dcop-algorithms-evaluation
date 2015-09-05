@@ -15,20 +15,20 @@ trait EavConfig[AgentId, Action, UtilityType, +Config <: EavConfig[AgentId, Acti
 
   override val centralVariableAssignment: (AgentId, Action) = (agentId, centralVariableValue)
 
+  val minMaxUtilities = utilities.groupBy(x => x._1._1).map(x => (x._1,
+    if (domain.forall(action =>
+      domainNeighborhood(x._1).forall(actionNeighbor =>
+        x._2.contains((x._1, action, actionNeighbor)))))
+      (x._2.values.min, x._2.values.max)
+    else
+      (x._2.values.fold(defaultUtility)(_ min _), x._2.values.fold(defaultUtility)(_ max _))))
+
   // This method is already implemented in a superclass, but subclasses have to override it.
   override def centralVariableValue: Action = ???
 
   override def expectedConflicts(centralVariableValue: Action) = {
-    val utilityBounds = utilities.groupBy(x => x._1._1).map(x => (x._1,
-      if (domain.forall(action =>
-        domainNeighborhood(x._1).forall(actionNeighbor =>
-          x._2.contains((x._1, action, actionNeighbor)))))
-        (x._2.values.min, x._2.values.max)
-      else
-        (x._2.values.fold(defaultUtility)(_ min _), x._2.values.fold(defaultUtility)(_ max _))))
-
     val conflicts = Set.newBuilder[AgentId]
-    domainNeighborhood.withFilter(x => utilityBounds.get(x._1) match {
+    domainNeighborhood.withFilter(x => minMaxUtilities.get(x._1) match {
       case Some((minUtility, maxUtility)) =>
         (neighborhood.get(x._1) match {
           case Some(actionNeighbor) =>
